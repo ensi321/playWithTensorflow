@@ -24,30 +24,39 @@ def main(_):
   test_set = mnist.test
 
   # Instantiate Estimator
-  nn = tf.contrib.learn.Estimator(model_fn=model_fn, params={})
+  nn = tf.contrib.learn.Estimator(model_fn=model_fn, model_dir='./log/training', params={}, config=tf.contrib.learn.RunConfig(save_checkpoints_secs=5))
 
+  # train input_fn
   def get_train_inputs():
     x = tf.constant(training_set.images)
     y = tf.constant(training_set.labels)
     return x, y
 
+  # test input_fn
   def get_test_inputs():
     x = tf.constant(test_set.images)
     y = tf.constant(test_set.labels)
     return x, y
 
+  # Accuracy function for validation_monitor
+  def custom_accuracy(predictions, labels):
+    predictions = tf.argmax(predictions, 1)
+    labels = tf.argmax(labels, 1)
+    return tf.contrib.metrics.streaming_accuracy(predictions, labels)
+
+
+  validation_monitor = tf.contrib.learn.monitors.ValidationMonitor(
+      test_set.images,
+      test_set.labels,
+      every_n_steps=100,
+      metrics={"accuracy":tf.contrib.learn.MetricSpec(
+        metric_fn=custom_accuracy)})
+
   # This is experiment
-  experiment = tf.contrib.learn.Experiment(nn, get_train_inputs, get_test_inputs, train_steps=1000, eval_steps=1, eval_delay_secs=0)
+  experiment = tf.contrib.learn.Experiment(nn, get_train_inputs, get_test_inputs, train_steps=1000, eval_steps=1, 
+    eval_delay_secs=0, train_monitors=[validation_monitor])
   experiment.train()
-  # experiment.evaluate()
-
-  # Score accuracy
-  predictions = experiment.estimator.predict(x=test_set.images, as_iterable=False)
-  correct_prediction = tf.equal(tf.argmax(predictions, 1), tf.argmax(test_set.labels, 1))
-  accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-  with tf.Session() as sess:
-    print(sess.run(accuracy))
+  experiment.evaluate()
 
 
 if __name__ == "__main__":
