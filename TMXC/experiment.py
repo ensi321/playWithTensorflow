@@ -24,7 +24,7 @@ def main(_):
   test_set = mnist.test
 
   # Instantiate Estimator
-  nn = tf.contrib.learn.Estimator(model_fn=model_fn, model_dir='./log/training', params={}, config=tf.contrib.learn.RunConfig(save_checkpoints_secs=5))
+  nn = tf.contrib.learn.Estimator(model_fn=model_fn, model_dir='./log/training', params={'keep_prob':0.75}, config=tf.contrib.learn.RunConfig(save_checkpoints_secs=5))
 
   # train input_fn
   def get_train_inputs():
@@ -44,6 +44,7 @@ def main(_):
     labels = tf.argmax(labels, 1)
     return tf.contrib.metrics.streaming_accuracy(predictions, labels)
 
+
   test_monitor = tf.contrib.learn.monitors.ValidationMonitor(
       test_set.images,
       test_set.labels,
@@ -57,7 +58,6 @@ def main(_):
       every_n_steps=100,
       metrics={"train_accuracy":tf.contrib.learn.MetricSpec(
         metric_fn=custom_accuracy)})
-
 
   # This is experiment
   experiment = tf.contrib.learn.Experiment(nn, get_train_inputs, get_test_inputs, train_steps=1000, eval_steps=1, 
