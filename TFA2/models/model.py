@@ -12,14 +12,39 @@ import tensorflow as tf
 
 def model_fn(features, targets, mode, params):
   """Model function for Estimator."""
-  print(targets)
-  # Connect the first hidden layer to input layer
-  output_layer = tf.contrib.layers.linear(features, 10)
 
-  # Reshape output layer to 1-dim Tensor to return predictions
-  # predictions = tf.reshape(output_layer, [-1])
-  predictions = output_layer
-  # predictions_dict = {"digit": predictions}
+  # We have 2 sets of weights/bias. One for encoder, one for decoder
+  encoder = tf.contrib.rnn.BasicLSTMCell(params['hidden_size'])
+  decoder = tf.contrib.rnn.BasicLSTMCell(params['hidden_size'])
+  state = (tf.zeros([1,params['hidden_size']]),)*2
+  print('Features:')
+  print(features)
+  print('Targets:')
+  print(targets)
+
+  print('Encoding:')
+  # Encode
+  for word in features:
+      output, state = encoder(word, state)
+      print(output)
+      print(state)
+
+  print('Decoding:')
+  # Decode
+  predictions = []
+  for i in range(25):
+      output, state = decoder(output, state)
+      print(output)
+      print(state)
+      predictions += output
+      if output == 2:
+          break
+
+  # Pad the prediction til 25
+  predictions = predictions + [0] * (25 - len(predictions))
+  targets = targets + [0] * (25 - len(targets))
+
+
 
   # Calculate loss 
   cross_entropy = tf.reduce_mean(
